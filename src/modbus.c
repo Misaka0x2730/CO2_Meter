@@ -119,17 +119,18 @@ u8_t Modbus_Parsing(u16_t protocol, u16_t slaveAddress, struct ModbusAdu* adu)
 	{
 		case MODBUS_READ_INPUT_REGISTERS:
 		{
-			if((pdu.numberOfOutputs > 0) && (pdu.numberOfOutputs <= INPUT_AMOUNT))
+			if((pdu.numberOfOutputs > 0) && ((pdu.address + pdu.numberOfOutputs) <= INPUT_AMOUNT))
 			{
 				for(u8_t i = 0; (i < pdu.numberOfOutputs) && (errorCode == MODBUS_ERROR_OK); i++)
 				{
+					pdu.numberOfBytes += 2;
 					switch(pdu.address+i)
 					{
 						case INPUT_TEMPERATURE:
 						{
 							s16_t temperature = HDC1080_GetTemperature();
 							pdu.data[i*2] = (temperature>>8)&0xFF;
-							pdu.data[1*2+1] = (temperature>>8)&0xFF;
+							pdu.data[i*2+1] = temperature&0xFF;
 							errorCode = MODBUS_ERROR_OK;
 							break;
 						}
@@ -137,7 +138,7 @@ u8_t Modbus_Parsing(u16_t protocol, u16_t slaveAddress, struct ModbusAdu* adu)
 						{
 							u16_t rh = HDC1080_GetHumidity();
 							pdu.data[i*2] = (rh>>8)&0xFF;
-							pdu.data[1*2+1] = (rh>>8)&0xFF;
+							pdu.data[i*2+1] = rh&0xFF;
 							errorCode = MODBUS_ERROR_OK;
 							break;
 						}
@@ -145,7 +146,7 @@ u8_t Modbus_Parsing(u16_t protocol, u16_t slaveAddress, struct ModbusAdu* adu)
 						{
 							u16_t eco2 = CCS811_GetECO2();
 							pdu.data[i*2] = (eco2>>8)&0xFF;
-							pdu.data[1*2+1] = (eco2>>8)&0xFF;
+							pdu.data[i*2+1] = eco2&0xFF;
 							errorCode = MODBUS_ERROR_OK;
 							break;
 						}

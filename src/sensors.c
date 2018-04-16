@@ -45,7 +45,7 @@ void Sensors_Init()
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 	TIM_InitStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_InitStructure.TIM_Prescaler = 32000 - 1;			//32MHz/32000 = 1kHz
-	TIM_InitStructure.TIM_Period = 10000 - 1;				//1kHz/10000 = 0.1Hz - 1 прерывание раз в 10 секунд
+	TIM_InitStructure.TIM_Period = 2000 - 1;				//1kHz/2000 = 0.5Hz - 1 прерывание раз в 10 секунд
 	TIM_TimeBaseInit(TIM3, &TIM_InitStructure);
 
 	TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
@@ -177,12 +177,21 @@ void CCS811_Init()
 u8_t CCS811_GetDataReady()
 {
 	u8_t data = 0;
+	u8_t error = 0;
 	I2C_AcknowledgeConfig(I2C1, ENABLE);
 	I2C_Start(I2C1, I2C_Direction_Transmitter, CCS811_ADDR);
 	I2C_WriteData(I2C1, CCS811_STATUS_ADDR);
 	I2C_Start(I2C1, I2C_Direction_Receiver, CCS811_ADDR);
 	I2C_AcknowledgeConfig(I2C1, DISABLE);
 	data = I2C_ReadData(I2C1);
+	I2C_Stop(I2C1);
+
+	I2C_AcknowledgeConfig(I2C1, ENABLE);
+	I2C_Start(I2C1, I2C_Direction_Transmitter, CCS811_ADDR);
+	I2C_WriteData(I2C1, CCS811_ERROR_ID_ADDR);
+	I2C_Start(I2C1, I2C_Direction_Receiver, CCS811_ADDR);
+	I2C_AcknowledgeConfig(I2C1, DISABLE);
+	error = I2C_ReadData(I2C1);
 	I2C_Stop(I2C1);
 
 	return (data & 0x08);
@@ -196,14 +205,21 @@ u16_t CCS811_GetECO2()
 void CCS811_MeasureECO2()
 {
 	u16_t data = 0;
-
+	u16_t tvoc = 0;
+	u16_t temp = 0;
 	I2C_AcknowledgeConfig(I2C1, ENABLE);
 	I2C_Start(I2C1, I2C_Direction_Transmitter, CCS811_ADDR);
 	I2C_WriteData(I2C1, CCS811_ALG_RESULT_DATA_ADDR);
 	I2C_Start(I2C1, I2C_Direction_Receiver, CCS811_ADDR);
 	data = (I2C_ReadData(I2C1)<<8);
-	I2C_AcknowledgeConfig(I2C1, DISABLE);
+	//I2C_AcknowledgeConfig(I2C1, DISABLE);
 	data += I2C_ReadData(I2C1);
+	tvoc = (I2C_ReadData(I2C1)<<8);
+	//I2C_AcknowledgeConfig(I2C1, DISABLE);
+	tvoc += I2C_ReadData(I2C1);
+	temp = (I2C_ReadData(I2C1)<<8);
+	I2C_AcknowledgeConfig(I2C1, DISABLE);
+	temp += I2C_ReadData(I2C1);
 	I2C_Stop(I2C1);
 
 	eco2 = data;

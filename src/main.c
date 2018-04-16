@@ -118,11 +118,12 @@ void main()
 			Display_DisplaySensorsData();
 		}
 		delay_ms(100);
+		if(Sensors_MeasureAllIfReady())
+			Display_DisplaySensorsData();
 		if(Sensors_GetUpdateFlag())
 		{
 			Sensors_ClearUpdateFlag();
-			if(Sensors_MeasureAllIfReady())
-				Display_DisplaySensorsData();
+			Display_DisplaySensorsData();
 		}
 	}
 }
@@ -221,6 +222,13 @@ void TIM6_IRQHandler(void)
 				//rs485State.state = MODBUS_RTU_PROCESSING;
 				USART_ITConfig(MODBUS_RTU_UART, USART_IT_RXNE, DISABLE);
 				Modbus_Parsing(MODBUS_RTU, rs485State.slaveAddress, &rs485State.rxData);
+				if(rs485State.state != MODBUS_RTU_TRANCEIVE)
+				{
+					rs485State.state = MODBUS_RTU_RECEIVE;
+					rs485State.txData.length = 0;
+					rs485State.rxData.length = 0;
+					MODBUS_RTU_SELECT_RECEIVER;
+				}
 			}
 			else
 				rs485State.rxData.length = 0;
